@@ -31,9 +31,10 @@ func main() {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
-	})
+	v1Router := chi.NewRouter()
+	v1Router.Get("/ready", handlerReadiness)
+	v1Router.Get("/error", handlerError)
+	r.Mount("/v1", v1Router)
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
