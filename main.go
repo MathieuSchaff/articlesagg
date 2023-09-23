@@ -20,6 +20,12 @@ type apiConfig struct {
 }
 
 func main() {
+	// feed, err := urlToFeed("https://www.lemonde.fr/rss/une.xml")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println(feed)
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Impossible de charger le fichier .env")
@@ -40,13 +46,11 @@ func main() {
 	}
 	defer myDB.Close()
 	// queries will be an address that points to the location in memory where the Queries struct is stored
-
 	queries := database.New(myDB)
 
 	apiCfg := &apiConfig{
 		DB: queries,
 	}
-	// creating a new router
 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
@@ -59,7 +63,17 @@ func main() {
 	v1Router := chi.NewRouter()
 	v1Router.Get("/ready", handlerReadiness)
 	v1Router.Get("/error", handlerError)
-	v1Router.Post("/user", apiCfg.handlerCreateUser)
+	// users handlers
+	v1Router.Post("/users", apiCfg.handlerCreateUser)
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
+	// feeds handlers
+	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerCreateFeed))
+	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
+
+	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerCreateFeedFollow))
+	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerGetFeedFollows))
+
+	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerDeleteFeedFollows))
 	r.Mount("/v1", v1Router)
 	srv := &http.Server{
 		Addr:    ":" + port,
